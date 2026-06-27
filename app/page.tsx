@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, PieChart as PieIcon, BarChart3, ArrowRight } from "lucide-react";
+import { Plus, PieChart as PieIcon, BarChart3, ArrowRight, Download } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import { useToast } from "@/components/Toast";
 import { summarize } from "@/lib/analytics";
@@ -16,7 +16,8 @@ import { Modal } from "@/components/Modal";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { EmptyState } from "@/components/EmptyState";
 import { DashboardSkeleton } from "@/components/Skeleton";
-import type { ExpenseInput } from "@/lib/types";
+import type { Expense, ExpenseInput } from "@/lib/types";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function DashboardPage() {
   const { expenses, isLoading, addExpense } = useExpenses();
@@ -31,6 +32,28 @@ export default function DashboardPage() {
         .slice(0, 5),
     [expenses]
   );
+
+  function exportCSV(data: Expense[]) {
+    const rows = [
+      ["Date", "Category", "Amount", "Description"],
+      ...data
+        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .map((e) => [
+          e.date,
+          CATEGORIES[e.category].label,
+          e.amount.toFixed(2),
+          `"${e.description.replace(/"/g, '""')}"`,
+        ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function handleAdd(input: ExpenseInput) {
     addExpense(input);
@@ -49,10 +72,20 @@ export default function DashboardPage() {
             An overview of your spending and trends.
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Add Expense
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="btn-secondary"
+            onClick={() => exportCSV(expenses)}
+            disabled={expenses.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+          <button className="btn-primary" onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
