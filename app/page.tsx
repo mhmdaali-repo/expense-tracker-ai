@@ -16,13 +16,14 @@ import { Modal } from "@/components/Modal";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { EmptyState } from "@/components/EmptyState";
 import { DashboardSkeleton } from "@/components/Skeleton";
-import type { Expense, ExpenseInput } from "@/lib/types";
-import { CATEGORIES } from "@/lib/categories";
+import { ExportModal } from "@/components/ExportModal";
+import type { ExpenseInput } from "@/lib/types";
 
 export default function DashboardPage() {
   const { expenses, isLoading, addExpense } = useExpenses();
   const { notify } = useToast();
   const [isFormOpen, setFormOpen] = useState(false);
+  const [isExportOpen, setExportOpen] = useState(false);
 
   const summary = useMemo(() => summarize(expenses), [expenses]);
   const recent = useMemo(
@@ -32,28 +33,6 @@ export default function DashboardPage() {
         .slice(0, 5),
     [expenses]
   );
-
-  function exportCSV(data: Expense[]) {
-    const rows = [
-      ["Date", "Category", "Amount", "Description"],
-      ...data
-        .sort((a, b) => (a.date < b.date ? 1 : -1))
-        .map((e) => [
-          e.date,
-          CATEGORIES[e.category].label,
-          e.amount.toFixed(2),
-          `"${e.description.replace(/"/g, '""')}"`,
-        ]),
-    ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
 
   function handleAdd(input: ExpenseInput) {
     addExpense(input);
@@ -75,11 +54,11 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <button
             className="btn-secondary"
-            onClick={() => exportCSV(expenses)}
+            onClick={() => setExportOpen(true)}
             disabled={expenses.length === 0}
           >
             <Download className="h-4 w-4" />
-            Export CSV
+            Export
           </button>
           <button className="btn-primary" onClick={() => setFormOpen(true)}>
             <Plus className="h-4 w-4" />
@@ -198,6 +177,12 @@ export default function DashboardPage() {
       >
         <ExpenseForm onSubmit={handleAdd} onCancel={() => setFormOpen(false)} />
       </Modal>
+
+      <ExportModal
+        open={isExportOpen}
+        onClose={() => setExportOpen(false)}
+        expenses={expenses}
+      />
     </div>
   );
 }
