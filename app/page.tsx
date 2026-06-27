@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, PieChart as PieIcon, BarChart3, ArrowRight } from "lucide-react";
+import { Plus, PieChart as PieIcon, BarChart3, ArrowRight, Download } from "lucide-react";
 import { useExpenses } from "@/context/ExpenseContext";
 import { useToast } from "@/components/Toast";
 import { summarize } from "@/lib/analytics";
@@ -16,12 +16,14 @@ import { Modal } from "@/components/Modal";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { EmptyState } from "@/components/EmptyState";
 import { DashboardSkeleton } from "@/components/Skeleton";
+import { ExportModal } from "@/components/ExportModal";
 import type { ExpenseInput } from "@/lib/types";
 
 export default function DashboardPage() {
   const { expenses, isLoading, addExpense } = useExpenses();
   const { notify } = useToast();
   const [isFormOpen, setFormOpen] = useState(false);
+  const [isExportOpen, setExportOpen] = useState(false);
 
   const summary = useMemo(() => summarize(expenses), [expenses]);
   const recent = useMemo(
@@ -49,10 +51,20 @@ export default function DashboardPage() {
             An overview of your spending and trends.
           </p>
         </div>
-        <button className="btn-primary" onClick={() => setFormOpen(true)}>
-          <Plus className="h-4 w-4" />
-          Add Expense
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="btn-secondary"
+            onClick={() => setExportOpen(true)}
+            disabled={expenses.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <button className="btn-primary" onClick={() => setFormOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Add Expense
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -165,6 +177,12 @@ export default function DashboardPage() {
       >
         <ExpenseForm onSubmit={handleAdd} onCancel={() => setFormOpen(false)} />
       </Modal>
+
+      <ExportModal
+        open={isExportOpen}
+        onClose={() => setExportOpen(false)}
+        expenses={expenses}
+      />
     </div>
   );
 }
